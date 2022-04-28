@@ -65,9 +65,9 @@ class Video extends Component {
 			// 	.then(() => this.videoAvailable = true)
 			// 	.catch(() => this.videoAvailable = false)
 
-			// await navigator.mediaDevices.getUserMedia({ audio: true })
-			// 	.then(() => this.audioAvailable = true)
-			// 	.catch(() => this.audioAvailable = false)
+			await navigator.mediaDevices.getUserMedia({ audio: false })
+				.then(() => this.audioAvailable = false)
+				.catch(() => this.audioAvailable = false)
 
 			if (navigator.mediaDevices.getDisplayMedia) {
 				this.setState({ screenAvailable: true })
@@ -324,7 +324,7 @@ class Video extends Component {
 							video.srcObject = event.stream
 							video.autoplay = true
 							video.playsinline = true
-							video.ondblclick = (params) => {
+							video.onclick = (params) => {
 								video.style.setProperty("minWidth", "100%")
 								video.style.setProperty("minHeight", "100%")
 							}
