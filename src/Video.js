@@ -314,20 +314,21 @@ class Video extends Component {
 
 							let video = document.createElement('video')
 
-							let css = {minWidth: cssMesure.minWidth, minHeight: cssMesure.minHeight, maxHeight: "100%", margin: "10px",
-								borderStyle: "solid", borderColor: "#bdbdbd", objectFit: "fill"}
-							for(let i in css) video.style[i] = css[i]
+							// let css = {minWidth: cssMesure.minWidth, minHeight: cssMesure.minHeight, maxHeight: "100%", margin: "10px",
+							// 	borderStyle: "solid", borderColor: "#bdbdbd", objectFit: "fill"}
+							// for(let i in css) video.style[i] = css[i]
 
-							video.style.setProperty("width", "auto")
-							video.style.setProperty("height", "auto")
+							// video.style.setProperty("width", "auto")
+							// video.style.setProperty("height", "auto")
+							video.className = "video-js"
 							video.setAttribute('data-socket', socketListId)
 							video.srcObject = event.stream
 							video.autoplay = true
 							video.playsinline = true
-							video.onclick = (params) => {
-								video.style.setProperty("minWidth", "100%")
-								video.style.setProperty("minHeight", "100%")
-							}
+							// video.onclick = (params) => {
+							// 	video.style.setProperty("minWidth", "100%")
+							// 	video.style.setProperty("minHeight", "100%")
+							// }
 
 							main.appendChild(video)
 						}
@@ -534,10 +535,8 @@ class Video extends Component {
 								}} onClick={this.copyUrl}>Copy invite link</Button>
 							</div>
 
-							<Row id="main" className="flex-container" style={{ margin: 0, padding: 0 }}>
-								<video id="my-video" ref={this.localVideoref} autoPlay muted style={{
-									borderStyle: "solid",borderColor: "#bdbdbd",margin: "10px",objectFit: "fill",
-									width: "100%",height: "100%"}}></video>
+							<Row id="main" style={{ margin: 0, padding: 0 }}>
+								<video id="my-video" className='video-js' ref={this.localVideoref} autoPlay muted></video>
 							</Row>
 						</div>
 					</div>
