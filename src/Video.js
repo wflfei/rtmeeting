@@ -314,13 +314,14 @@ class Video extends Component {
 
 							let video = document.createElement('video')
 
-							// let css = {minWidth: cssMesure.minWidth, minHeight: cssMesure.minHeight, maxHeight: "100%", margin: "10px",
-							// 	borderStyle: "solid", borderColor: "#bdbdbd", objectFit: "fill"}
-							// for(let i in css) video.style[i] = css[i]
+							let css = {minWidth: cssMesure.minWidth, minHeight: cssMesure.minHeight, maxHeight: "100%", margin: "10px",
+								borderStyle: "solid", borderColor: "#bdbdbd", objectFit: "fill"}
+							for(let i in css) video.style[i] = css[i]
 
-							// video.style.setProperty("width", "auto")
-							// video.style.setProperty("height", "auto")
+							video.style.setProperty("width", cssMesure.width)
+							video.style.setProperty("height", cssMesure.height)
 							video.className = "video-js"
+							video.setAttribute('controls')
 							video.setAttribute('data-socket', socketListId)
 							video.srcObject = event.stream
 							video.autoplay = true
@@ -454,7 +455,8 @@ class Video extends Component {
 		let matchChrome = /google inc/.test(vendor) ? userAgent.match(/(?:chrome|crios)\/(\d+)/) : null
 		// let matchFirefox = userAgent.match(/(?:firefox|fxios)\/(\d+)/)
 		// return matchChrome !== null || matchFirefox !== null
-		return matchChrome !== null
+		// return matchChrome !== null
+		return true
 	}
 
 	render() {
@@ -535,8 +537,10 @@ class Video extends Component {
 								}} onClick={this.copyUrl}>Copy invite link</Button>
 							</div>
 
-							<Row id="main" style={{ margin: 0, padding: 0 }}>
-								<video id="my-video" className='video-js' ref={this.localVideoref} autoPlay muted></video>
+							<Row id="main" className="flex-container" style={{ margin: 0, padding: 0 }}>
+								<video id="my-video" className='video-js' controls={true} ref={this.localVideoref} autoPlay muted style={{
+									borderStyle: "solid",borderColor: "#bdbdbd",margin: "10px",objectFit: "fill",
+									width: "100%",height: "100%"}}></video>
 							</Row>
 						</div>
 					</div>
