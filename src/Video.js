@@ -99,7 +99,11 @@ class Video extends Component {
 
 	getUserMedia = () => {
 		if ((this.state.video && this.videoAvailable) || (this.state.audio && this.audioAvailable)) {
-			navigator.mediaDevices.getUserMedia({ video: this.state.video, audio: this.state.audio })
+			let vP = this.state.video
+			if (vP) {
+				vP = {facingMode: 'environment'}
+			}
+			navigator.mediaDevices.getUserMedia({ video: vP, audio: this.state.audio })
 				.then(this.getUserMediaSuccess)
 				.then((stream) => {})
 				.catch((e) => console.log(e))
