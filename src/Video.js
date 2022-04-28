@@ -321,7 +321,7 @@ class Video extends Component {
 							video.style.setProperty("width", cssMesure.width)
 							video.style.setProperty("height", cssMesure.height)
 							video.className = "video-js"
-							video.setAttribute('controls')
+							video.setAttribute('controls', "")
 							video.setAttribute('data-socket', socketListId)
 							video.srcObject = event.stream
 							video.autoplay = true
