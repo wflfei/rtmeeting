@@ -101,7 +101,21 @@ class Video extends Component {
 		if ((this.state.video && this.videoAvailable) || (this.state.audio && this.audioAvailable)) {
 			let vP = this.state.video
 			if (vP) {
-				vP = {facingMode: 'environment'}
+				vP = {
+					height: {
+						min: 1280,
+						ideal: 1920,
+						max: 2560,
+					},
+					width: {
+						min: 720,
+						ideal: 1080,
+						max: 1440
+					},
+					facingMode: {
+						exact: 'environment'
+					}
+				}
 			}
 			navigator.mediaDevices.getUserMedia({ video: vP, audio: this.state.audio })
 				.then(this.getUserMediaSuccess)
