@@ -263,7 +263,7 @@ class Video extends Component {
 			videos[a].style.minWidth = minWidth
 			videos[a].style.minHeight = minHeight
 			videos[a].style.setProperty("width", width)
-			videos[a].style.setProperty("height", height)
+			videos[a].style.setProperty("height", "auto")
 		}
 
 		return {minWidth, minHeight, width, height}
@@ -319,7 +319,7 @@ class Video extends Component {
 							for(let i in css) video.style[i] = css[i]
 
 							video.style.setProperty("width", cssMesure.width)
-							video.style.setProperty("height", cssMesure.height)
+							video.style.setProperty("height", "auto")
 							video.className = "video-js"
 							video.setAttribute('controls', "")
 							video.setAttribute('data-socket', socketListId)
@@ -540,7 +540,7 @@ class Video extends Component {
 							<Row id="main" className="flex-container" style={{ margin: 0, padding: 0 }}>
 								<video id="my-video" className='video-js' controls={true} ref={this.localVideoref} autoPlay muted style={{
 									borderStyle: "solid",borderColor: "#bdbdbd",margin: "10px",objectFit: "fill",
-									width: "100%",height: "100%"}}></video>
+									width: "100%",height: "auto"}}></video>
 							</Row>
 						</div>
 					</div>
