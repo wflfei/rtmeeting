@@ -41,6 +41,9 @@ class Video extends Component {
 
 		this.videoAvailable = false
 		this.audioAvailable = false
+		this.videoUrl = null
+		this.videoTime = 0
+		this.lastCurrentTime = 0
 
 		this.state = {
 			video: false,
@@ -51,206 +54,11 @@ class Video extends Component {
 			messages: [],
 			message: "",
 			newmessages: 0,
-			askForUsername: true,
+			connected: false,
 			username: faker.internet.userName(),
+			videoUrl: null
 		}
 		connections = {}
-
-		this.getPermissions()
-	}
-
-	getPermissions = async () => {
-		try{
-			// await navigator.mediaDevices.getUserMedia({ video: true })
-			// 	.then(() => this.videoAvailable = true)
-			// 	.catch(() => this.videoAvailable = false)
-
-			await navigator.mediaDevices.getUserMedia({ audio: false })
-				.then(() => this.audioAvailable = false)
-				.catch(() => this.audioAvailable = false)
-
-			if (navigator.mediaDevices.getDisplayMedia) {
-				this.setState({ screenAvailable: true })
-			} else {
-				this.setState({ screenAvailable: false })
-			}
-
-			if (this.videoAvailable || this.audioAvailable) {
-				navigator.mediaDevices.getUserMedia({ video: this.videoAvailable, audio: this.audioAvailable })
-					.then((stream) => {
-						window.localStream = stream
-						this.localVideoref.current.srcObject = stream
-					})
-					.then((stream) => {})
-					.catch((e) => console.log(e))
-			}
-		} catch(e) { console.log(e) }
-	}
-
-	getMedia = () => {
-		this.setState({
-			video: this.videoAvailable,
-			audio: this.audioAvailable
-		}, () => {
-			this.getUserMedia()
-			this.connectToSocketServer()
-		})
-	}
-
-	getUserMedia = () => {
-		if ((this.state.video && this.videoAvailable) || (this.state.audio && this.audioAvailable)) {
-			let vP = this.state.video
-			if (vP) {
-				vP = {
-					height: {
-						min: 1280,
-						ideal: 1920,
-						max: 2560,
-					},
-					width: {
-						min: 720,
-						ideal: 1080,
-						max: 1440
-					},
-					facingMode: {
-						exact: 'environment'
-					}
-				}
-			}
-			navigator.mediaDevices.getUserMedia({ video: vP, audio: this.state.audio })
-				.then(this.getUserMediaSuccess)
-				.then((stream) => {})
-				.catch((e) => console.log(e))
-		} else {
-			try {
-				let tracks = this.localVideoref.current.srcObject.getTracks()
-				tracks.forEach(track => track.stop())
-			} catch (e) {}
-		}
-	}
-
-	getUserMediaSuccess = (stream) => {
-		try {
-			window.localStream.getTracks().forEach(track => track.stop())
-		} catch(e) { console.log(e) }
-
-		window.localStream = stream
-		this.localVideoref.current.srcObject = stream
-
-		for (let id in connections) {
-			if (id === socketId) continue
-
-			connections[id].addStream(window.localStream)
-
-			connections[id].createOffer().then((description) => {
-				connections[id].setLocalDescription(description)
-					.then(() => {
-						socket.emit('signal', id, JSON.stringify({ 'sdp': connections[id].localDescription }))
-					})
-					.catch(e => console.log(e))
-			})
-		}
-
-		stream.getTracks().forEach(track => track.onended = () => {
-			this.setState({
-				video: false,
-				audio: false,
-			}, () => {
-				try {
-					let tracks = this.localVideoref.current.srcObject.getTracks()
-					tracks.forEach(track => track.stop())
-				} catch(e) { console.log(e) }
-
-				let blackSilence = (...args) => new MediaStream([this.black(...args), this.silence()])
-				window.localStream = blackSilence()
-				this.localVideoref.current.srcObject = window.localStream
-
-				for (let id in connections) {
-					connections[id].addStream(window.localStream)
-
-					connections[id].createOffer().then((description) => {
-						connections[id].setLocalDescription(description)
-							.then(() => {
-								socket.emit('signal', id, JSON.stringify({ 'sdp': connections[id].localDescription }))
-							})
-							.catch(e => console.log(e))
-					})
-				}
-			})
-		})
-	}
-
-	getDislayMedia = () => {
-		if (this.state.screen) {
-			if (navigator.mediaDevices.getDisplayMedia) {
-				navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
-					.then(this.getDislayMediaSuccess)
-					.then((stream) => {})
-					.catch((e) => console.log(e))
-			}
-		}
-	}
-
-	getDislayMediaSuccess = (stream) => {
-		try {
-			window.localStream.getTracks().forEach(track => track.stop())
-		} catch(e) { console.log(e) }
-
-		window.localStream = stream
-		this.localVideoref.current.srcObject = stream
-
-		for (let id in connections) {
-			if (id === socketId) continue
-
-			connections[id].addStream(window.localStream)
-
-			connections[id].createOffer().then((description) => {
-				connections[id].setLocalDescription(description)
-					.then(() => {
-						socket.emit('signal', id, JSON.stringify({ 'sdp': connections[id].localDescription }))
-					})
-					.catch(e => console.log(e))
-			})
-		}
-
-		stream.getTracks().forEach(track => track.onended = () => {
-			this.setState({
-				screen: false,
-			}, () => {
-				try {
-					let tracks = this.localVideoref.current.srcObject.getTracks()
-					tracks.forEach(track => track.stop())
-				} catch(e) { console.log(e) }
-
-				let blackSilence = (...args) => new MediaStream([this.black(...args), this.silence()])
-				window.localStream = blackSilence()
-				this.localVideoref.current.srcObject = window.localStream
-
-				this.getUserMedia()
-			})
-		})
-	}
-
-	gotMessageFromServer = (fromId, message) => {
-		var signal = JSON.parse(message)
-
-		if (fromId !== socketId) {
-			if (signal.sdp) {
-				connections[fromId].setRemoteDescription(new RTCSessionDescription(signal.sdp)).then(() => {
-					if (signal.sdp.type === 'offer') {
-						connections[fromId].createAnswer().then((description) => {
-							connections[fromId].setLocalDescription(description).then(() => {
-								socket.emit('signal', fromId, JSON.stringify({ 'sdp': connections[fromId].localDescription }))
-							}).catch(e => console.log(e))
-						}).catch(e => console.log(e))
-					}
-				}).catch(e => console.log(e))
-			}
-
-			if (signal.ice) {
-				connections[fromId].addIceCandidate(new RTCIceCandidate(signal.ice)).catch(e => console.log(e))
-			}
-		}
 	}
 
 	changeCssVideos = (main) => {
@@ -290,7 +98,7 @@ class Video extends Component {
 	connectToSocketServer = () => {
 		socket = io.connect(server_url, { secure: true })
 
-		socket.on('signal', this.gotMessageFromServer)
+		// socket.on('signal', this.gotMessageFromServer)
 
 		socket.on('connect', () => {
 			socket.emit('join-call', window.location.href)
@@ -298,127 +106,105 @@ class Video extends Component {
 
 			socket.on('chat-message', this.addMessage)
 
-			socket.on('user-left', (id) => {
-				let video = document.querySelector(`[data-socket="${id}"]`)
-				if (video !== null) {
-					elms--
-					video.parentNode.removeChild(video)
+			// socket.on('user-left', (id) => {
+			// 	let video = document.querySelector(`[data-socket="${id}"]`)
+			// 	if (video !== null) {
+			// 		elms--
+			// 		video.parentNode.removeChild(video)
 
-					let main = document.getElementById('main')
-					this.changeCssVideos(main)
-				}
+			// 		let main = document.getElementById('main')
+			// 		this.changeCssVideos(main)
+			// 	}
+			// })
+
+			socket.on('video-info', (videoInfo) => {
+				this.videoTime = videoInfo.play_time
+				this.setState({
+					videoUrl: videoInfo.video_url
+				}, () => {
+					if (this.videoTime != 0) {
+						this.seekToTime()
+					}
+					this.listenVideoTime()
+				})
+			})
+
+			socket.on('video-time', (newTime, sender, socketIdSender) => {
+				this.videoTime = newTime
+				this.seekToTime()
 			})
 
 			socket.on('user-joined', (id, clients) => {
-				clients.forEach((socketListId) => {
-					connections[socketListId] = new RTCPeerConnection(peerConnectionConfig)
-					// Wait for their ice candidate       
-					connections[socketListId].onicecandidate = function (event) {
-						if (event.candidate != null) {
-							socket.emit('signal', socketListId, JSON.stringify({ 'ice': event.candidate }))
-						}
-					}
+				// clients.forEach((socketListId) => {
+				// 	connections[socketListId] = new RTCPeerConnection(peerConnectionConfig)
+				// 	// Wait for their ice candidate       
+				// 	connections[socketListId].onicecandidate = function (event) {
+				// 		if (event.candidate != null) {
+				// 			socket.emit('signal', socketListId, JSON.stringify({ 'ice': event.candidate }))
+				// 		}
+				// 	}
 
-					// Wait for their video stream
-					connections[socketListId].onaddstream = (event) => {
-						// TODO mute button, full screen button
-						var searchVidep = document.querySelector(`[data-socket="${socketListId}"]`)
-						if (searchVidep !== null) { // if i don't do this check it make an empyt square
-							searchVidep.srcObject = event.stream
-						} else {
-							elms = clients.length
-							let main = document.getElementById('main')
-							let cssMesure = this.changeCssVideos(main)
+				// 	// Wait for their video stream
+				// 	connections[socketListId].onaddstream = (event) => {
+				// 		// TODO mute button, full screen button
+				// 		var searchVidep = document.querySelector(`[data-socket="${socketListId}"]`)
+				// 		if (searchVidep !== null) { // if i don't do this check it make an empyt square
+				// 			searchVidep.srcObject = event.stream
+				// 		} else {
+				// 			elms = clients.length
+				// 			let main = document.getElementById('main')
+				// 			let cssMesure = this.changeCssVideos(main)
 
-							let video = document.createElement('video')
+				// 			let video = document.createElement('video')
 
-							let css = {minWidth: cssMesure.minWidth, minHeight: cssMesure.minHeight, maxHeight: "100%", margin: "10px",
-								borderStyle: "solid", borderColor: "#bdbdbd", objectFit: "fill"}
-							for(let i in css) video.style[i] = css[i]
+				// 			let css = {minWidth: cssMesure.minWidth, minHeight: cssMesure.minHeight, maxHeight: "100%", margin: "10px",
+				// 				borderStyle: "solid", borderColor: "#bdbdbd", objectFit: "fill"}
+				// 			for(let i in css) video.style[i] = css[i]
 
-							video.style.setProperty("width", cssMesure.width)
-							video.style.setProperty("height", "auto")
-							video.className = "video-js"
-							video.setAttribute('controls', "")
-							video.setAttribute('data-socket', socketListId)
-							video.srcObject = event.stream
-							video.autoplay = true
-							video.playsinline = true
-							// video.onclick = (params) => {
-							// 	video.style.setProperty("minWidth", "100%")
-							// 	video.style.setProperty("minHeight", "100%")
-							// }
+				// 			video.style.setProperty("width", cssMesure.width)
+				// 			video.style.setProperty("height", cssMesure.height)
+				// 			video.setAttribute('data-socket', socketListId)
+				// 			video.srcObject = event.stream
+				// 			video.autoplay = true
+				// 			video.playsinline = true
 
-							main.appendChild(video)
-						}
-					}
+				// 			main.appendChild(video)
+				// 		}
+				// 	}
 
-					// Add the local video stream
-					if (window.localStream !== undefined && window.localStream !== null) {
-						connections[socketListId].addStream(window.localStream)
-					} else {
-						let blackSilence = (...args) => new MediaStream([this.black(...args), this.silence()])
-						window.localStream = blackSilence()
-						connections[socketListId].addStream(window.localStream)
-					}
-				})
+				// 	// Add the local video stream
+				// 	if (window.localStream !== undefined && window.localStream !== null) {
+				// 		connections[socketListId].addStream(window.localStream)
+				// 	} else {
+				// 		let blackSilence = (...args) => new MediaStream([this.black(...args), this.silence()])
+				// 		window.localStream = blackSilence()
+				// 		connections[socketListId].addStream(window.localStream)
+				// 	}
+				// })
 
-				if (id === socketId) {
-					for (let id2 in connections) {
-						if (id2 === socketId) continue
+				// if (id === socketId) {
+				// 	for (let id2 in connections) {
+				// 		if (id2 === socketId) continue
 						
-						try {
-							connections[id2].addStream(window.localStream)
-						} catch(e) {}
+				// 		try {
+				// 			connections[id2].addStream(window.localStream)
+				// 		} catch(e) {}
 			
-						connections[id2].createOffer().then((description) => {
-							connections[id2].setLocalDescription(description)
-								.then(() => {
-									socket.emit('signal', id2, JSON.stringify({ 'sdp': connections[id2].localDescription }))
-								})
-								.catch(e => console.log(e))
-						})
-					}
-				}
+				// 		connections[id2].createOffer().then((description) => {
+				// 			connections[id2].setLocalDescription(description)
+				// 				.then(() => {
+				// 					socket.emit('signal', id2, JSON.stringify({ 'sdp': connections[id2].localDescription }))
+				// 				})
+				// 				.catch(e => console.log(e))
+				// 		})
+				// 	}
+				// }
+			})
+			// 连接成功
+			this.setState({
+				connected: true
 			})
 		})
-	}
-
-	silence = () => {
-		let ctx = new AudioContext()
-		let oscillator = ctx.createOscillator()
-		let dst = oscillator.connect(ctx.createMediaStreamDestination())
-		oscillator.start()
-		ctx.resume()
-		return Object.assign(dst.stream.getAudioTracks()[0], { enabled: false })
-	}
-	black = ({ width = 640, height = 480 } = {}) => {
-		let canvas = Object.assign(document.createElement("canvas"), { width, height })
-		canvas.getContext('2d').fillRect(0, 0, width, height)
-		let stream = canvas.captureStream()
-		return Object.assign(stream.getVideoTracks()[0], { enabled: false })
-	}
-
-	handleVideo = async () => {
-		await navigator.mediaDevices.getUserMedia({ video: true })
-				.then(() => this.videoAvailable = true)
-				.catch(() => this.videoAvailable = false)
-		this.setState({ video: !this.state.video }, () => this.getUserMedia())
-	}
-	handleAudio = async () => {
-		await navigator.mediaDevices.getUserMedia({ audio: true })
-				.then(() => this.audioAvailable = true)
-				.catch(() => this.audioAvailable = false)
-		this.setState({ audio: !this.state.audio }, () => this.getUserMedia())
-	}
-	handleScreen = () => this.setState({ screen: !this.state.screen }, () => this.getDislayMedia())
-
-	handleEndCall = () => {
-		try {
-			let tracks = this.localVideoref.current.srcObject.getTracks()
-			tracks.forEach(track => track.stop())
-		} catch (e) {}
-		window.location.href = "/"
 	}
 
 	openChat = () => this.setState({ showModal: true, newmessages: 0 })
@@ -433,8 +219,34 @@ class Video extends Component {
 			this.setState({ newmessages: this.state.newmessages + 1 })
 		}
 	}
+	
+	seekToTime = () => {
+		let video = document.getElementById('my-video')
+		video.currentTime = this.videoTime
+	}
 
-	handleUsername = (e) => this.setState({ username: e.target.value })
+	listenVideoTime = () => {
+		let video = document.getElementById('my-video')
+		video.addEventListener('timeupdate', () => {
+			var currentTime = Math.floor(video.currentTime);
+			if (currentTime - this.lastCurrentTime > 1) {
+				console.log(currentTime)
+				if (currentTime - this.videoTime > 5) {
+					this.uploadVideoTime(currentTime)
+				}
+			}
+			this.lastCurrentTime = currentTime;
+		});
+	}
+
+	// handleUsername = (e) => this.setState({ username: e.target.value })
+	handleVideoUrl = (e) => {
+		this.videoUrl = e.target.value
+	}
+
+	uploadVideoTime = (newTime) => {
+		socket.emit('video-time', newTime, this.state.username)
+	}
 
 	sendMessage = () => {
 		socket.emit('chat-message', this.state.message, this.state.username)
@@ -465,35 +277,31 @@ class Video extends Component {
 		})
 	}
 
-	connect = () => this.setState({ askForUsername: false }, () => this.getMedia())
+	connect = () => {
+		socket.emit('video-url', this.videoUrl)
+	}
 
-	isChrome = function () {
-		let userAgent = (navigator && (navigator.userAgent || '')).toLowerCase()
-		let vendor = (navigator && (navigator.vendor || '')).toLowerCase()
-		let matchChrome = /google inc/.test(vendor) ? userAgent.match(/(?:chrome|crios)\/(\d+)/) : null
-		// let matchFirefox = userAgent.match(/(?:firefox|fxios)\/(\d+)/)
-		// return matchChrome !== null || matchFirefox !== null
-		// return matchChrome !== null
-		return true
+	componentDidMount() {
+		this.connectToSocketServer()
 	}
 
 	render() {
-		if(this.isChrome() === false){
+		if(this.state.connected === false){
 			return (
 				<div style={{background: "white", width: "30%", height: "auto", padding: "20px", minWidth: "400px",
 						textAlign: "center", margin: "auto", marginTop: "50px", justifyContent: "center"}}>
-					<h1>Sorry, this works only with Google Chrome</h1>
+					<h1>Connecting...</h1>
 				</div>
 			)
 		}
 		return (
 			<div>
-				{this.state.askForUsername === true ?
+				{this.state.videoUrl === null ?
 					<div>
 						<div style={{background: "white", width: "30%", height: "auto", padding: "20px", minWidth: "400px",
 								textAlign: "center", margin: "auto", marginTop: "50px", justifyContent: "center"}}>
-							<p style={{ margin: 0, fontWeight: "bold", paddingRight: "50px" }}>Set your username</p>
-							<Input placeholder="Username" value={this.state.username} onChange={e => this.handleUsername(e)} />
+							<p style={{ margin: 0, fontWeight: "bold", paddingRight: "50px" }}>Set video url</p>
+							<Input placeholder="url" onChange={e => this.handleVideoUrl(e)} />
 							<Button variant="contained" color="primary" onClick={this.connect} style={{ margin: "20px" }}>Connect</Button>
 						</div>
 
@@ -505,17 +313,6 @@ class Video extends Component {
 					:
 					<div>
 						<div className="btn-down" style={{ backgroundColor: "whitesmoke", color: "whitesmoke", textAlign: "center" }}>
-							<IconButton style={{ color: "#424242" }} onClick={this.handleVideo}>
-								{(this.state.video === true) ? <VideocamIcon /> : <VideocamOffIcon />}
-							</IconButton>
-
-							<IconButton style={{ color: "#f44336" }} onClick={this.handleEndCall}>
-								<CallEndIcon />
-							</IconButton>
-
-							<IconButton style={{ color: "#424242" }} onClick={this.handleAudio}>
-								{this.state.audio === true ? <MicIcon /> : <MicOffIcon />}
-							</IconButton>
 
 							{this.state.screenAvailable === true ?
 								<IconButton style={{ color: "#424242" }} onClick={this.handleScreen}>
@@ -558,7 +355,7 @@ class Video extends Component {
 							<Row id="main" className="flex-container" style={{ margin: 0, padding: 0 }}>
 								<video id="my-video" className='video-js' controls={true} ref={this.localVideoref} autoPlay muted style={{
 									borderStyle: "solid",borderColor: "#bdbdbd",margin: "10px",objectFit: "fill",
-									width: "100%",height: "auto"}}></video>
+									width: "100%",height: "auto"}} src={this.state.videoUrl}></video>
 							</Row>
 						</div>
 					</div>

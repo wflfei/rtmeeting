@@ -25,6 +25,7 @@ sanitizeString = (str) => {
 }
 
 connections = {}
+rooms = {}
 messages = {}
 timeOnline = {}
 
@@ -33,6 +34,11 @@ io.on('connection', (socket) => {
 	socket.on('join-call', (path) => {
 		if(connections[path] === undefined){
 			connections[path] = []
+		}
+		if(rooms[path] === undefined){
+			rooms[path] = {
+				play_time: 0
+			}
 		}
 		connections[path].push(socket.id)
 
@@ -48,8 +54,41 @@ io.on('connection', (socket) => {
 					messages[path][a]['sender'], messages[path][a]['socket-id-sender'])
 			}
 		}
+		if (rooms[path].video_url) {
+			io.to(socket.id).emit('video-info', rooms[path])
+		}
 
 		console.log(path, connections[path])
+	})
+
+	socket.on('video-url', (videoUrl) => {
+		var key
+		var ok = false
+		for (const [k, v] of Object.entries(connections)) {
+			for(let a = 0; a < v.length; ++a){
+				if(v[a] === socket.id){
+					key = k
+					ok = true
+				}
+			}
+		}
+
+		if(ok === true){
+			if(rooms[key] === undefined){
+				rooms[key] = {
+					video_url: videoUrl,
+					play_time: 0
+				}
+			} else {
+				rooms[key].video_url = videoUrl
+				rooms[key].play_time = 0
+			}
+			console.log("got video url", key, ":", videoUrl)
+
+			for(let a = 0; a < connections[key].length; ++a){
+				io.to(connections[key][a]).emit("video-info", rooms[key])
+			}
+		}
 	})
 
 	socket.on('signal', (toId, message) => {
@@ -84,6 +123,34 @@ io.on('connection', (socket) => {
 		}
 	})
 
+	socket.on('video-time', (data, sender) => {
+		new_v_time = sanitizeString(data)
+		sender = sanitizeString(sender)
+
+		var key
+		var ok = false
+		for (const [k, v] of Object.entries(connections)) {
+			for(let a = 0; a < v.length; ++a){
+				if(v[a] === socket.id){
+					key = k
+					ok = true
+				}
+			}
+		}
+
+		if(ok === true){
+			if(rooms[key] === undefined){
+				return
+			}
+			rooms[key].play_time = new_v_time
+			console.log("change video time ", key, ":", sender, new_v_time)
+
+			for(let a = 0; a < connections[key].length; ++a){
+				io.to(connections[key][a]).emit("video-time", new_v_time, sender, socket.id)
+			}
+		}
+	})
+
 	socket.on('disconnect', () => {
 		var diffTime = Math.abs(timeOnline[socket.id] - new Date())
 		var key
@@ -103,6 +170,7 @@ io.on('connection', (socket) => {
 
 					if(connections[key].length === 0){
 						delete connections[key]
+						delete rooms[key]
 					}
 				}
 			}
