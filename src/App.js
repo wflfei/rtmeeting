@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import Video from './Video'
+import Video from './Video1'
 import Home from './Home'
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 

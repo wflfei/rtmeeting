@@ -18,7 +18,7 @@ if(process.env.NODE_ENV==='production'){
 		res.sendFile(path.join(__dirname+"/build/index.html"))
 	})
 }
-app.set('port', (process.env.PORT || 4001))
+app.set('port', (process.env.PORT || 443))
 
 sanitizeString = (str) => {
 	return xss(str)
@@ -40,13 +40,14 @@ io.on('connection', (socket) => {
 				play_time: 0
 			}
 		}
-		connections[path].push(socket.id)
-
-		timeOnline[socket.id] = new Date()
 
 		for(let a = 0; a < connections[path].length; ++a){
 			io.to(connections[path][a]).emit("user-joined", socket.id, connections[path])
 		}
+
+		connections[path].push(socket.id)
+
+		timeOnline[socket.id] = new Date()
 
 		if(messages[path] !== undefined){
 			for(let a = 0; a < messages[path].length; ++a){
@@ -124,7 +125,7 @@ io.on('connection', (socket) => {
 	})
 
 	socket.on('video-time', (data, sender) => {
-		new_v_time = sanitizeString(data)
+		new_v_time = data
 		sender = sanitizeString(sender)
 
 		var key
@@ -147,6 +148,36 @@ io.on('connection', (socket) => {
 
 			for(let a = 0; a < connections[key].length; ++a){
 				io.to(connections[key][a]).emit("video-time", new_v_time, sender, socket.id)
+			}
+		}
+	})
+
+	socket.on('video-state', (paused, sender) => {
+		sender = sanitizeString(sender)
+
+		var key
+		var ok = false
+		for (const [k, v] of Object.entries(connections)) {
+			for(let a = 0; a < v.length; ++a){
+				if(v[a] === socket.id){
+					key = k
+					ok = true
+				}
+			}
+		}
+
+		if(ok === true){
+			if(rooms[key] === undefined || rooms[key].paused == paused){
+				return
+			}
+			rooms[key].paused = paused
+			console.log("change video state ", key, ":", sender, paused)
+
+			for(let a = 0; a < connections[key].length; ++a){
+				if (connections[key][a] == socket.id) {  // 跳过自己
+					continue
+				}
+				io.to(connections[key][a]).emit("video-state", paused, sender, socket.id)
 			}
 		}
 	})

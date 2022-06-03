@@ -20,7 +20,7 @@ import Modal from 'react-bootstrap/Modal'
 import 'bootstrap/dist/css/bootstrap.css'
 import "./Video.css"
 
-const server_url = process.env.NODE_ENV === 'production' ? 'https://video.sebastienbiollo.com' : "http://localhost:4001"
+const server_url = process.env.NODE_ENV === 'production' ? 'https://video.sebastienbiollo.com' : "http://192.168.0.105:4001"
 
 var connections = {}
 const peerConnectionConfig = {
@@ -118,6 +118,7 @@ class Video extends Component {
 			// })
 
 			socket.on('video-info', (videoInfo) => {
+				console.table(videoInfo)
 				this.videoTime = videoInfo.play_time
 				this.setState({
 					videoUrl: videoInfo.video_url
@@ -130,6 +131,7 @@ class Video extends Component {
 			})
 
 			socket.on('video-time', (newTime, sender, socketIdSender) => {
+				console.log('got remote time: ' + newTime)
 				this.videoTime = newTime
 				this.seekToTime()
 			})
@@ -229,9 +231,9 @@ class Video extends Component {
 		let video = document.getElementById('my-video')
 		video.addEventListener('timeupdate', () => {
 			var currentTime = Math.floor(video.currentTime);
-			if (currentTime - this.lastCurrentTime > 1) {
+			if (currentTime - this.lastCurrentTime > 1 || currentTime - this.lastCurrentTime < 0) {
 				console.log(currentTime)
-				if (currentTime - this.videoTime > 5) {
+				if (Math.abs(currentTime - this.videoTime) > 5) {
 					this.uploadVideoTime(currentTime)
 				}
 			}
