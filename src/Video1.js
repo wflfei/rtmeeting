@@ -81,7 +81,7 @@ class Video extends Component {
 	}
 
 	connectToSocketServer = () => {
-		socket = io.connect(server_url, { secure: true })
+		socket = io.connect(server_url, { secure: true, cors: true })
 
 		// socket.on('signal', this.gotMessageFromServer)
 
