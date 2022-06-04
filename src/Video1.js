@@ -10,7 +10,7 @@ import Modal from 'react-bootstrap/Modal'
 import 'bootstrap/dist/css/bootstrap.css'
 import "./Video.css"
 
-const server_url = process.env.NODE_ENV === 'production' ? 'http://rtmeeting.vercel.app' : "http://rtmeeting.vercel.app"
+const server_url = process.env.NODE_ENV === 'production' ? 'http://47.106.117.192' : "https://47.106.117.192"
 
 var connections = {}
 var socket = null
