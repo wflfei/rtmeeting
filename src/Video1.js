@@ -263,7 +263,7 @@ class Video extends Component {
 						<div className='video-container'>
 
 							<video id="my-video" className="video-js vjs-default-skin" controls={true} ref={this.localVideoref} autoPlay muted controlsList='nodownload' style={{
-									marginTop: "3px",objectFit: "fill", width: "100%",height: "auto"}}>
+									marginTop: "3px",objectFit: "fill", width: "100%",height: "auto"}} data-setup='{}'>
 										<source src={this.state.videoUrl} type={isM3u8 ? "application/x-mpegURL" : null}></source>
 									</video>
 						</div>
