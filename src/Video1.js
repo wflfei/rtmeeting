@@ -7,6 +7,7 @@ import ChatIcon from '@material-ui/icons/Chat'
 
 // import { Row } from 'reactstrap'
 import Modal from 'react-bootstrap/Modal'
+import VideoPlayer from './Player'
 import 'bootstrap/dist/css/bootstrap.css'
 import "./Video.css"
 
@@ -262,10 +263,9 @@ class Video extends Component {
 					
 						<div className='video-container'>
 
-							<video id="my-video" className="video-js vjs-default-skin" controls={true} ref={this.localVideoref} autoPlay muted controlsList='nodownload' style={{
-									marginTop: "3px",objectFit: "fill", width: "100%",height: "auto"}} data-setup='{}'>
-										<source src={this.state.videoUrl} type={isM3u8 ? "application/x-mpegURL" : null}></source>
-									</video>
+							<VideoPlayer controls={true} autoplay={true} muted={true} controlsList='nodownload' style={{
+									marginTop: "3px",objectFit: "fill", width: "100vw",height: "56.25vw"}} source={[{src: this.state.videoUrl, type: isM3u8 ? "application/x-mpegURL" : null}]}>
+							</VideoPlayer>
 						</div>
 
 						<div className='chat-content-down' hidden={!this.state.showModal}>
