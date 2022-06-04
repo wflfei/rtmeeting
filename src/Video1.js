@@ -11,7 +11,7 @@ import VideoPlayer from './Player'
 import 'bootstrap/dist/css/bootstrap.css'
 import "./Video.css"
 
-const server_url = process.env.NODE_ENV === 'production' ? 'http://47.106.117.192' : "https://47.106.117.192"
+const server_url = process.env.NODE_ENV === 'production' ? 'http://47.106.117.192' : "http://192.168.0.105"
 
 var connections = {}
 var socket = null
@@ -23,6 +23,7 @@ class Video extends Component {
 		super(props)
 
 		this.localVideoref = React.createRef()
+		this.playerRef = React.createRef()
 
 		this.videoAvailable = false
 		this.audioAvailable = false
@@ -112,7 +113,7 @@ class Video extends Component {
 					// if (this.videoTime != 0) {
 					// 	this.seekToTime()
 					// }
-					this.listenVideoTime()
+					// this.listenVideoTime()
 				})
 			})
 
@@ -133,12 +134,14 @@ class Video extends Component {
 			})
 
 			socket.on('user-joined', (id, clients) => {
+				console.log("user joined")
 				setTimeout(() => {
-					if (this.videoUrl) {
-						let cTime = document.getElementById('my-video').currentTime
+					if (this.videoUrl && this.playerRef.current) {
+						let cTime = this.playerRef.current.currentTime()
+						console.log("give new user time: " + cTime)
 						this.uploadVideoTime(cTime)
 					}
-				}, 1000);
+				}, 2500);
 			})
 			// 连接成功
 			this.setState({
@@ -168,28 +171,75 @@ class Video extends Component {
 	}
 	
 	seekToTime = () => {
-		let video = document.getElementById('my-video')
-		video.currentTime = this.videoTime
+		this.playerRef.current && this.playerRef.current.currentTime(this.videoTime)
 	}
 
-	listenVideoTime = () => {
-		let video = document.getElementById('my-video')
-		video.addEventListener('timeupdate', () => {
-			var currentTime = Math.floor(video.currentTime);
-			if (currentTime - this.lastCurrentTime > 1 || currentTime - this.lastCurrentTime < 0) {
-				console.log(currentTime)
-				if (Math.abs(currentTime - this.videoTime) > 5) {
-					this.uploadVideoTime(currentTime)
-				}
+	// listenVideoTime = () => {
+	// 	let video = document.getElementById('my-video')
+	// 	video.addEventListener('timeupdate', () => {
+	// 		var currentTime = Math.floor(video.currentTime);
+	// 		if (currentTime - this.lastCurrentTime > 1 || currentTime - this.lastCurrentTime < 0) {
+	// 			console.log(currentTime)
+	// 			if (Math.abs(currentTime - this.videoTime) > 5) {
+	// 				this.uploadVideoTime(currentTime)
+	// 			}
+	// 		}
+	// 		this.lastCurrentTime = currentTime;
+	// 	})
+	// 	video.addEventListener('play', () => {
+	// 		this.uploadVideoState(false)
+	// 	})
+	// 	video.addEventListener('pause', () => {
+	// 		this.uploadVideoState(true)
+	// 	})
+	// }
+
+	onVideoPlayerReady = (player) => {
+		this.playerRef.current = player
+
+		player.on('seeked', () => {
+			let currentTime = this.playerRef.current.currentTime()
+			if (Math.abs(currentTime - this.videoTime) > 5) {
+				this.uploadVideoTime(currentTime)
 			}
-			this.lastCurrentTime = currentTime;
 		})
-		video.addEventListener('play', () => {
-			this.uploadVideoState(false)
+
+		// player.on('play', () => {
+		// 	this.uploadVideoState(false)
+		// })
+	  
+		// player.on('pause', (evt) => {
+		// 	console.log("pause")
+		// 	console.table(evt)
+		// 	this.uploadVideoState(true)
+		// })
+
+		// PC端和手机Chrome触发click
+		player.controlBar.playToggle.on("click", () => {
+			let p = this.playerRef.current.paused()
+			console.log("click pause: " + p)
+			this.uploadVideoState(p)
 		})
-		video.addEventListener('pause', () => {
-			this.uploadVideoState(true)
+
+		// 手机其他浏览器及微信QQ等触发tap
+		player.controlBar.playToggle.on("tap", () => {
+			let p = this.playerRef.current.paused()
+			console.log("tap pause: " + p)
+			this.uploadVideoState(p)
 		})
+
+		// player.controlBar.playToggle.on("touchend", () => {
+		// 	let p = this.playerRef.current.paused()
+		// 	console.log("touchend pause: " + p)
+		// 	this.uploadVideoState(p)
+		// })
+
+		// player.controlBar.playToggle.on("mouseup", () => {
+		// 	let p = this.playerRef.current.paused()
+		// 	console.log("mouseup pause: " + p)
+		// 	this.uploadVideoState(p)
+		// })
+
 	}
 
 	// handleUsername = (e) => this.setState({ username: e.target.value })
@@ -211,17 +261,23 @@ class Video extends Component {
 	}
 
 	playVideo = () => {
-		let video = document.getElementById('my-video')
-		if (video && video.paused) {
-			video.play()
+		if (!this.playerRef.current) {
+			 return
+		}
+		const player = this.playerRef.current
+		if (player && player.paused()) {
+			player.play()
 		}
 	}
 
 	pauseVideo = () => {
-		let video = document.getElementById('my-video')
-		if (video && (!video.paused)) {
-			video.pause()
-		}
+		if (!this.playerRef.current) {
+			return
+	   }
+	   const player = this.playerRef.current
+	   if (player && (!player.paused())) {
+		   player.pause()
+	   }
 	}
 
 	connect = () => {
@@ -263,8 +319,23 @@ class Video extends Component {
 					
 						<div className='video-container'>
 
-							<VideoPlayer controls={true} autoplay={true} muted={true} controlsList='nodownload' style={{
-									marginTop: "3px",objectFit: "fill", width: "100vw",height: "56.25vw"}} source={[{src: this.state.videoUrl, type: isM3u8 ? "application/x-mpegURL" : null}]}>
+							<VideoPlayer options={
+								{
+									width: "100%", 
+									aspectRatio: "16:9", 
+									controls: true, 
+									autoplay: true, 
+									muted: true, 
+									controlsList: 'nodownload', 
+									sources: [{src: this.state.videoUrl, type: isM3u8 ? "application/x-mpegURL" : null}],
+									userActions: {
+										doubleClick: true
+									},
+									preferFullWindow: true,
+									fullscreen: {navigationUI: 'show'}
+								}}
+								style={{marginTop: "3px",objectFit: "fill", width: "100vw",height: "56.25vw"}}
+								onReady={this.onVideoPlayerReady}>
 							</VideoPlayer>
 						</div>
 

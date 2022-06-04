@@ -41,8 +41,8 @@ io.on('connection', (socket) => {
 			}
 		}
 
-		for(let a = 0; a < connections[path].length; ++a){
-			io.to(connections[path][a]).emit("user-joined", socket.id, connections[path])
+		if(connections[path].length > 0){
+			io.to(connections[path][0]).emit("user-joined", socket.id, connections[path])
 		}
 
 		connections[path].push(socket.id)
