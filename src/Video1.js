@@ -232,6 +232,7 @@ class Video extends Component {
 	}
 
 	render() {
+		let isM3u8 = this.state.videoUrl && this.state.videoUrl.indexOf("m3u8") > 0
 		if(this.state.connected === false){
 			return (
 				<div style={{background: "white", width: "30%", height: "auto", padding: "20px", minWidth: "400px",
@@ -261,9 +262,10 @@ class Video extends Component {
 					
 						<div className='video-container'>
 
-							<video id="my-video" controls={true} ref={this.localVideoref} autoPlay muted controlsList='nodownload' style={{
-									borderStyle: "solid",borderColor: "#bdbdbd",marginTop: "3px",objectFit: "fill",
-									width: "100%",height: "auto"}} src={this.state.videoUrl}></video>
+							<video id="my-video" className="video-js vjs-default-skin" controls={true} ref={this.localVideoref} autoPlay muted controlsList='nodownload' style={{
+									marginTop: "3px",objectFit: "fill", width: "100%",height: "auto"}}>
+										<source src={this.state.videoUrl} type={isM3u8 ? "application/x-mpegURL" : null}></source>
+									</video>
 						</div>
 
 						<div className='chat-content-down' hidden={!this.state.showModal}>
