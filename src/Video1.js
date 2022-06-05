@@ -36,7 +36,7 @@ class Video extends Component {
 			video: false,
 			audio: false,
 			screen: false,
-			showModal: false,
+			showModal: true,
 			screenAvailable: false,
 			messages: [],
 			message: "",
@@ -315,7 +315,8 @@ class Video extends Component {
 						</div>
 					</div>
 					:
-					<div>
+					<div >
+						<div style={{backgroundColor: "#223", height: '100vh', zIndex: 1}}></div>
 					
 						<div className='video-container'>
 
@@ -339,27 +340,32 @@ class Video extends Component {
 							</VideoPlayer>
 						</div>
 
-						<div className='chat-content-down' hidden={!this.state.showModal}>
+						<div className='chat-content-down' hidden={!this.state.showModal} style={{ backgroundColor: "#223", color: "#bbb"}}>
 							<Modal.Body style={{ overflow: "auto", overflowY: "auto", height: "300px", textAlign: "left" }} >
 									{this.state.messages.length > 0 ? this.state.messages.map((item, index) => (
 										<div key={index} style={{textAlign: "left"}}>
-											<p style={{ wordBreak: "break-all" }}><b>{item.sender}</b>: {item.data}</p>
+											<p style={{ wordBreak: "break-all", color: "#bbb" }}><b>{item.sender}</b>: {item.data}</p>
 										</div>
 									)) : <p>No message yet</p>}
 							</Modal.Body>
-							<Modal.Footer className="div-send-msg" style={{background: 'white'}}>
-								<Input placeholder="Message" value={this.state.message} onChange={e => this.handleMessage(e)} />
-								<Button variant="contained" color="primary" onClick={this.sendMessage}>Send</Button>
-							</Modal.Footer>
+							<div className="div-send-msg" style={{background: '#223', borderTop: '1px solid #112', paddingTop: '3px', paddingBottom: '5px'}}>
+								<Input placeholder="Message" value={this.state.message} onChange={e => this.handleMessage(e)} style={{color: "#bbb"}}
+									onKeyPress={(e) => {
+										if (e.key === "Enter") {
+										  this.sendMessage()
+										}
+									  }} />
+								<Button variant="contained" color="primary" onClick={this.sendMessage} style={{color: "#bbb", marginLeft: '5px'}}>Send</Button>
+							</div>
 						</div>
 
-						<div className="chat-down" style={{ backgroundColor: "whitesmoke", color: "whitesmoke", textAlign: "center"}}>
+						{/* <div className="chat-down" style={{ backgroundColor: "#223", color: "#bbb", textAlign: "center"}}>
 							<Badge badgeContent={this.state.newmessages} max={999} color="secondary" onClick={this.toggleChat}>
 								<IconButton style={{ color: "#424242" }} onClick={this.toggleChat}>
 									<ChatIcon />
 								</IconButton>
 							</Badge>
-						</div>
+						</div> */}
 					</div>
 				}
 			</div>
